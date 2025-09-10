@@ -1,44 +1,163 @@
-### 개발서버
-https://admin-test.game-snack.co.kr/
+## 개요
 
-### 운영서버 
-https://admin.game-snack.co.kr/
+Game snak Admin UI는 광고 운영을 위한 관리자 웹 애플리케이션입니다. 광고 관련 Config 값을 등록·관리하고, 이벤트를 생성하여 Google Publisher Tag(GPT), Mezzo, Dawin, Adpopcorn 등 다양한 광고 제공사 노출 우선순위와 정책을 정의합니다. 클라이언트(게임/앱) 측은 해당 Admin에서 설정된 값을 Admin API를 통해 조회하여 실제 광고 노출을 수행합니다.
+
+- **핵심 목적**: 광고 슬롯/단말/앱별 정책화, 광고 제공사 우선순위 관리, 이벤트 기반 전략 운영
+- **대상 사용자**: 운영자, 광고 담당자, 슈퍼관리자(SUPER_ADMIN)
 
 ---
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## 주요 기능
 
-## Getting Started
+- **광고 설정 관리**: GPT, Mezzo, Dawin, Adpopcorn 등 광고 제공사별 Config 등록 및 수정
+- **이벤트 기반 우선순위**: 이벤트 생성으로 광고 노출 우선순위와 조건 정의
+- **워크스페이스 운영**: `workspace` 단위의 설정/리포트/계정 관리
+- **슈퍼스페이스 운영**: `superspace` 전역 수준 관리(슈퍼관리자 전용)
+- **리포트 조회**: 집계 차트/테이블 조회, 기간/필터 검색, 엑셀 다운로드
+- **권한/인증**: `next-auth` 기반 로그인, JWT 세션, 라우팅 가드(middleware)
 
-First, run the development server:
+## 기술 스택
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Framework**: Next.js 15(App Router)
+- **Language**: TypeScript
+- **UI**: MUI v7, Emotion
+- **State & Data**: TanStack Query v5, Zustand
+- **Auth**: NextAuth(Credentials, JWT)
+- **API Client**: Orval(OpenAPI → React Query client 생성), 커스텀 fetch
+- **Etc.**: notistack, xlsx, recharts
+
+## 폴더 구조(요약)
+
+```
+src/
+  app/
+    (authed)/              # 인증 후 영역, 세션 컨텍스트 주입
+      layout.tsx
+      workspace/           # 일반 운영 공간(설정, 리포트, 이벤트 등)
+      superspace/          # 슈퍼관리자 전용 전역 운영 공간
+    api/auth/[...nextauth]/route.ts  # NextAuth 라우트
+    layout.tsx             # 전역 Provider(MUI, Query, i18n 등)
+    middleware.ts          # 인증/권한 라우팅 가드
+  components/              # UI 컴포넌트(Atoms/Molecules/Organisms)
+  lib/
+    auth/auth.ts           # NextAuth 옵션 및 auth() 유틸
+    service/
+      api-client/          # 클라이언트 사이드 Orval 생성물
+      api-server/          # 서버 사이드 Orval 생성물
+      custom-fetch.*.ts    # 공용 fetch 래퍼(토큰/URL/에러 처리)
+      query-client.ts      # React Query Client 팩토리
+    theme/                 # MUI 테마/폰트
+    utils/                 # 공통 유틸/훅
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 빠른 시작
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+사전 요구사항
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Node.js 20.x
+- Yarn
 
-## Learn More
+설치 및 실행
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+yarn install
+yarn dev
+# http://localhost:3000
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+빌드/실행
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+yarn build
+yarn start
+```
 
-## Deploy on Vercel
+린트
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+yarn lint
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 환경 변수
+
+다음 값들이 주요하게 사용됩니다.
+
+- `API_BASE_URL`: 서버(SSR/서버 액션)에서 호출할 Admin API 기본 URL
+- `NEXT_PUBLIC_BASE_URL`: 클라이언트에서 사용할 기본 URL(리라이트 대상으로 다시 API_BASE_URL로 프록시)
+- `AUTH_SECRET`: NextAuth JWT 서명에 사용
+
+샘플(`.env.local`)
+
+```bash
+# Admin API 엔드포인트
+API_BASE_URL=https://admin-api-test.ad.finflow.co.kr
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+
+# NextAuth
+AUTH_SECRET=your_secret_here
+```
+
+리라이트 설정(`next.config.ts`)
+
+```ts
+rewrites: async () => [
+  {
+    source: '/admin/api/:path*',
+    destination: `${process.env.API_BASE_URL}/admin/api/:path*`,
+  },
+],
+```
+
+- 클라이언트는 `/admin/api/*` 로 호출 → Next.js가 `API_BASE_URL` 로 프록시
+- 서버(SSR/서버 액션)는 직접 `API_BASE_URL` 로 호출
+
+## 인증과 권한
+
+- `next-auth` Credentials Provider로 로그인 처리 → `adminAuthLogin` API 호출
+- 세션 전략은 JWT, 30일 만료
+- `middleware.ts`에서 전역 가드 동작
+  - 미인증 시 `/auth/signin` 으로 리다이렉트
+  - 루트(`/`) 접근 시 인증되면 `/workspace` 로 이동
+  - `SUPER_ADMIN` 이 아닌 사용자는 `superspace` 접근 불가
+- `(authed)/layout.tsx`에서 `auth()` 로 세션 조회 후 `SessionProvider`에 주입
+
+## API 클라이언트 & 데이터 패칭
+
+- **Orval(OpenAPI → Client 생성)**
+  - 설정: `orval.config.cjs`
+  - 스키마 소스: `https://admin-api-test.ad.finflow.co.kr/v3/api-docs`
+  - 생성물: `src/lib/service/api-client/*`, `src/lib/service/api-server/*`
+  - 실행: `yarn orval`
+- **커스텀 fetch**
+  - 파일: `src/lib/service/custom-fetch.client.ts`, `custom-fetch.server.ts`
+  - 공통 헤더/토큰 주입(`Authorization: Bearer <token>`), JSON/텍스트/PDF 응답 케이스 처리
+  - 클라이언트는 `NEXT_PUBLIC_BASE_URL` 기준으로 호출 후 리라이트, 서버는 `API_BASE_URL` 사용
+- **TanStack Query**
+  - `QueryClientProvider.client.tsx` + `ReactQueryStreamedHydration`
+  - Devtools 포함(개발 기본 비활성화)
+
+## 광고 설정/이벤트 운영 흐름(개념)
+
+1. 운영자가 관리자에서 광고 제공사별 Config를 등록/수정합니다.
+2. 이벤트를 생성하고 노출 우선순위(예: GPT → Mezzo → Dawin → Adpopcorn) 및 조건을 정의합니다.
+3. 클라이언트(게임/앱)는 Admin API를 통해 해당 설정/이벤트 정보를 조회합니다.
+4. 클라이언트는 조회한 우선순위/정책에 따라 광고 SDK/태그를 초기화하고 노출을 수행합니다.
+
+## 스크립트
+
+```json
+{
+  "dev": "next dev",
+  "build": "next build",
+  "start": "next start",
+  "lint": "next lint",
+  "orval": "orval --config orval.config.cjs"
+}
+```
+
+## 배포/운영 팁
+
+- App Router 기반(Next.js 15), 미들웨어 인증 가드 사용
+- `API_BASE_URL` 은 반드시 서버에서 접근 가능한 Admin API를 가리켜야 함
+- 프록시/로드밸런서 환경에서는 `x-forwarded-*` 헤더가 올바르게 전달되는지 확인
+- 캐시/Prefetch 전략은 TanStack Query 옵션으로 조절
