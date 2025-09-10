@@ -143,21 +143,3 @@ rewrites: async () => [
 3. 클라이언트(게임/앱)는 Admin API를 통해 해당 설정/이벤트 정보를 조회합니다.
 4. 클라이언트는 조회한 우선순위/정책에 따라 광고 SDK/태그를 초기화하고 노출을 수행합니다.
 
-## 스크립트
-
-```json
-{
-  "dev": "next dev",
-  "build": "next build",
-  "start": "next start",
-  "lint": "next lint",
-  "orval": "orval --config orval.config.cjs"
-}
-```
-
-## 배포/운영 팁
-
-- App Router 기반(Next.js 15), 미들웨어 인증 가드 사용
-- `API_BASE_URL` 은 반드시 서버에서 접근 가능한 Admin API를 가리켜야 함
-- 프록시/로드밸런서 환경에서는 `x-forwarded-*` 헤더가 올바르게 전달되는지 확인
-- 캐시/Prefetch 전략은 TanStack Query 옵션으로 조절
